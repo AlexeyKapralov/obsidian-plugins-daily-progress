@@ -1,0 +1,9 @@
+{
+  "id": "daily-progress",
+  "name": "Daily Progress",
+  "version": "0.3.0",
+  "minAppVersion": "1.8.0",
+  "description": "Track daily actions in calm weekly-note panels backed by readable Markdown.",
+  "author": "Alexey",
+  "isDesktopOnly": false
+}

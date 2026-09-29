@@ -1,0 +1,272 @@
+.daily-progress-panel {
+  --dp-border: var(--background-modifier-border);
+  --dp-muted: var(--text-muted);
+  border: 1px solid var(--dp-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  overflow: hidden;
+}
+
+.daily-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--dp-border);
+  background: var(--background-secondary);
+}
+
+.daily-progress-identity,
+.daily-progress-header-tools,
+.daily-progress-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.daily-progress-identity {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.daily-progress-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-progress-navigation button {
+  min-width: 1.8rem;
+  height: 1.8rem;
+  padding: 0 0.45rem;
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: none;
+  background: var(--background-primary);
+  color: var(--text-muted);
+}
+
+.daily-progress-navigation button:hover:not(:disabled),
+.daily-progress-navigation button:focus-visible {
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.daily-progress-header-tools {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.daily-progress-controls {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.daily-progress-controls button {
+  height: 1.9rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: none;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-controls button:hover,
+.daily-progress-controls button:focus-visible {
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.daily-progress-identity span,
+.daily-progress-summary span,
+.daily-progress-action + small,
+.daily-progress-metric small,
+.daily-progress-panel th small {
+  color: var(--dp-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-summary progress {
+  width: 7rem;
+  height: 0.45rem;
+  accent-color: var(--interactive-accent);
+}
+
+.daily-progress-summary small {
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-scroll {
+  overflow-x: auto;
+}
+
+.daily-progress-panel table {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.daily-progress-panel th,
+.daily-progress-panel td {
+  min-width: 2.7rem;
+  padding: 0.55rem 0.45rem;
+  border: 0;
+  border-bottom: 1px solid var(--dp-border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.daily-progress-panel tbody tr:last-child th,
+.daily-progress-panel tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.daily-progress-panel th:first-child {
+  min-width: 11rem;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--background-primary);
+  text-align: left;
+}
+
+.daily-progress-panel thead th:first-child {
+  z-index: 2;
+  background: var(--background-secondary);
+}
+
+.daily-progress-panel thead th {
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-small);
+  font-weight: var(--font-semibold);
+}
+
+.daily-progress-panel thead th span,
+.daily-progress-panel thead th small,
+.daily-progress-action + small,
+.daily-progress-metric strong,
+.daily-progress-metric small {
+  display: block;
+}
+
+.daily-progress-action {
+  max-width: 15rem;
+  height: auto;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+  text-align: left;
+  white-space: normal;
+}
+
+.daily-progress-action:hover,
+.daily-progress-action:focus-visible {
+  color: var(--text-accent);
+  background: transparent;
+}
+
+.daily-progress-state {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--dp-border);
+  border-radius: 50%;
+  box-shadow: none;
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.daily-progress-state:hover,
+.daily-progress-state:focus-visible {
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.daily-progress-state.is-done {
+  border-color: var(--color-green);
+  background: rgba(var(--color-green-rgb), 0.12);
+  color: var(--color-green);
+}
+
+.daily-progress-state.is-missed {
+  border-color: var(--color-red);
+  background: rgba(var(--color-red-rgb), 0.1);
+  color: var(--color-red);
+}
+
+.daily-progress-state.is-skipped {
+  border-color: var(--text-faint);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+}
+
+.daily-progress-day.is-future,
+.daily-progress-day.is-outside {
+  color: var(--text-faint);
+}
+
+.daily-progress-day.is-future {
+  background: var(--background-secondary-alt);
+}
+
+.daily-progress-streak {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-semibold);
+}
+
+.daily-progress-empty,
+.daily-progress-manage-empty,
+.daily-progress-error {
+  padding: 1rem;
+  color: var(--text-muted);
+}
+
+.daily-progress-manage-list {
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.daily-progress-manage-list .setting-item {
+  align-items: center;
+}
+
+.daily-progress-error {
+  border-left: 3px solid var(--color-red);
+}
+
+@media (max-width: 700px) {
+  .daily-progress-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .daily-progress-summary {
+    width: 100%;
+  }
+
+  .daily-progress-header-tools {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .daily-progress-navigation {
+    flex-wrap: wrap;
+  }
+
+  .daily-progress-summary progress {
+    flex: 1;
+  }
+}
