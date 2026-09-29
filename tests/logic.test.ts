@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { completeAction, deleteAction } from "../src/actions";
-import { parsePanelConfig } from "../src/config";
+import { calculateAnalytics } from "../src/analytics";
+import { panelCodeBlock, parsePanelConfig } from "../src/config";
 import { addDays, countDaysInclusive, mondayOf, parseIsoDate } from "../src/dates";
 import { dayAvailability } from "../src/day-policy";
 import { EMPTY_DOCUMENT, parseProgressData, serializeProgressData } from "../src/markdown";
@@ -20,21 +21,43 @@ describe("date logic", () => {
 });
 
 describe("panel config", () => {
-  it("normalizes a requested week and accepts a custom data path", () => {
-    expect(parsePanelConfig("data: Tracking/Daily.md\nweek: 2026-09-27")).toEqual({
-      dataPath: "Tracking/Daily.md",
-      weekStart: "2026-09-21"
-    });
+  it("ignores a stale requested week and opens on the current local week", () => {
+    expect(parsePanelConfig("data: Tracking/Daily.md\nweek: 2020-01-01")).toEqual({ dataPath: "Tracking/Daily.md" });
+  });
+
+  it("does not pin newly inserted panels to a dated week", () => {
+    expect(panelCodeBlock()).toBe("```daily-progress\ndata: Daily Progress Data.md\n```");
   });
 });
 
 describe("Markdown persistence", () => {
   it("round-trips actions, escaped cells, and entries while preserving surrounding text", () => {
-    const entries: DailyEntry[] = [{ actionId: "read", date: "2026-09-21", status: "done" }];
+    const entries: DailyEntry[] = [
+      { actionId: "read", date: "2026-09-21", status: "missed", reason: "no-time", comment: "Встреча | дорога" }
+    ];
     const source = `${EMPTY_DOCUMENT}\nPersonal note that must stay.\n`;
     const serialized = serializeProgressData(source, { actions: [action], entries });
     expect(serialized).toContain("Personal note that must stay.");
     expect(parseProgressData(serialized)).toEqual({ actions: [action], entries });
+  });
+
+  it("reads legacy three-column log tables without migration", () => {
+    const legacy = `${EMPTY_DOCUMENT.replace(
+      "| Date | Action ID | Status | Reason | Comment |\n| --- | --- | --- | --- | --- |",
+      "| Date | Action ID | Status |\n| --- | --- | --- |"
+    )}`;
+    const source = legacy
+      .replace("| --- | --- | --- | --- |\n<!-- daily-progress:actions:end -->", `| --- | --- | --- | --- |\n| read | Read | 2026-09-01 | 2026-09-30 |\n<!-- daily-progress:actions:end -->`)
+      .replace("<!-- daily-progress:log:end -->", "| 2026-09-21 | read | done |\n<!-- daily-progress:log:end -->");
+    expect(parseProgressData(source).entries).toEqual([{ actionId: "read", date: "2026-09-21", status: "done" }]);
+  });
+
+  it("rejects reasons on statuses other than missed", () => {
+    const source = serializeProgressData("", {
+      actions: [action],
+      entries: [{ actionId: "read", date: "2026-09-21", status: "done", reason: "forgot" }]
+    });
+    expect(() => parseProgressData(source)).toThrow("only valid for missed rows");
   });
 
   it("rejects orphaned log rows instead of silently deleting them on the next write", () => {
@@ -46,6 +69,33 @@ describe("Markdown persistence", () => {
       ]
     });
     expect(() => parseProgressData(source)).toThrow("invalid log row");
+  });
+});
+
+describe("analytics", () => {
+  const analyticsAction: DailyAction = { id: "habit", name: "Habit", start: "2026-09-01", end: "2026-09-30" };
+  const analyticsEntries: DailyEntry[] = [
+    { actionId: "habit", date: "2026-09-24", status: "done" },
+    { actionId: "habit", date: "2026-09-25", status: "skipped" },
+    { actionId: "habit", date: "2026-09-26", status: "done" },
+    { actionId: "habit", date: "2026-09-27", status: "missed", reason: "health" },
+    { actionId: "habit", date: "2026-09-28", status: "done" },
+    { actionId: "habit", date: "2026-09-29", status: "done" }
+  ];
+
+  it("keeps done, missed, skipped, and unmarked distinct", () => {
+    const result = calculateAnalytics([analyticsAction], analyticsEntries, "2026-09-29", "30");
+    expect(result).toMatchObject({ done: 4, missed: 1, skipped: 1, unmarked: 23, eligible: 28, percentage: 14 });
+    expect(result.reasons).toEqual([{ reason: "health", label: "Усталость / здоровье", count: 1 }]);
+  });
+
+  it("calculates transparent skips, current and best streaks, and missed intervals", () => {
+    const entries: DailyEntry[] = [
+      { actionId: "habit", date: "2026-09-20", status: "missed" },
+      ...analyticsEntries
+    ];
+    const result = calculateAnalytics([analyticsAction], entries, "2026-09-29", "all");
+    expect(result.actions[0]).toMatchObject({ currentStreak: 2, bestStreak: 2, averageMissInterval: 7 });
   });
 });
 

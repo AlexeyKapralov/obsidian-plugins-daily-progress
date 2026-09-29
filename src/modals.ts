@@ -1,6 +1,6 @@
 import { App, FuzzySuggestModal, Modal, Notice, Setting } from "obsidian";
 import { isValidRange } from "./dates";
-import type { DailyAction } from "./model";
+import { isMissedReason, MISSED_REASON_LABELS, MISSED_REASONS, type DailyAction, type MissedReason } from "./model";
 
 export class ActionModal extends Modal {
   private name: string;
@@ -55,6 +55,50 @@ export class ActionModal extends Modal {
       this.close();
     } catch (error) {
       new Notice(error instanceof Error ? error.message : "Не удалось сохранить действие.");
+    }
+  }
+}
+
+export class MissedDetailsModal extends Modal {
+  private reason: MissedReason | undefined;
+  private comment = "";
+
+  public constructor(
+    app: App,
+    private readonly actionName: string,
+    private readonly date: string,
+    private readonly save: (reason?: MissedReason, comment?: string) => Promise<void>
+  ) {
+    super(app);
+  }
+
+  public onOpen(): void {
+    this.setTitle("Отметить как missed");
+    this.contentEl.createEl("p", { text: `${this.actionName} · ${this.date}` });
+    new Setting(this.contentEl).setName("Причина (необязательно)").addDropdown((dropdown) => {
+      dropdown.addOption("", "Не указывать");
+      for (const reason of MISSED_REASONS) dropdown.addOption(reason, MISSED_REASON_LABELS[reason]);
+      dropdown.onChange((value) => (this.reason = isMissedReason(value) ? value : undefined));
+    });
+    new Setting(this.contentEl).setName("Короткий комментарий (необязательно)").addText((text) => {
+      text.setPlaceholder("До 160 символов").onChange((value) => (this.comment = value.slice(0, 160)));
+      text.inputEl.maxLength = 160;
+    });
+    new Setting(this.contentEl)
+      .addButton((button) => button.setButtonText("Отмена").onClick(() => this.close()))
+      .addButton((button) => button.setCta().setButtonText("Сохранить missed").onClick(() => void this.submit()));
+  }
+
+  public onClose(): void {
+    this.contentEl.empty();
+  }
+
+  private async submit(): Promise<void> {
+    try {
+      await this.save(this.reason, this.comment.trim() || undefined);
+      this.close();
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : "Не удалось сохранить missed.");
     }
   }
 }

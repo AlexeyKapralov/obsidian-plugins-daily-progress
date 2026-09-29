@@ -235,6 +235,187 @@
   color: var(--text-muted);
 }
 
+.daily-progress-analytics {
+  border-top: 1px solid var(--dp-border);
+}
+
+.daily-progress-analytics > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+}
+
+.daily-progress-analytics > summary small,
+.daily-progress-muted {
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+  font-weight: normal;
+}
+
+.daily-progress-analytics-content {
+  display: grid;
+  gap: 1rem;
+  padding: 0 1rem 1rem;
+}
+
+.daily-progress-periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.daily-progress-periods button {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--dp-border);
+  box-shadow: none;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-periods button.is-active,
+.daily-progress-periods button:focus-visible {
+  border-color: var(--interactive-accent);
+  color: var(--text-accent);
+}
+
+.daily-progress-analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.daily-progress-analytics-cards > div {
+  padding: 0.65rem;
+  border: 1px solid var(--dp-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.daily-progress-analytics-cards strong,
+.daily-progress-analytics-cards span {
+  display: block;
+}
+
+.daily-progress-analytics-cards span {
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-analytics-section h4 {
+  margin: 0 0 0.5rem;
+  font-size: var(--font-small);
+}
+
+.daily-progress-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.3rem;
+  min-height: 6rem;
+  overflow-x: auto;
+}
+
+.daily-progress-bar {
+  display: flex;
+  flex: 1 0 2.4rem;
+  min-width: 2.4rem;
+  height: 5.5rem;
+  align-items: center;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.2rem;
+  border-bottom: 1px solid var(--dp-border);
+}
+
+.daily-progress-bar-fill {
+  width: 0.85rem;
+  min-height: 1px;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: var(--interactive-accent);
+}
+
+.daily-progress-bar span {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-progress-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(2.6rem, 1fr));
+  gap: 0.3rem;
+}
+
+.daily-progress-weekdays > div {
+  padding: 0.4rem 0.2rem;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  text-align: center;
+}
+
+.daily-progress-weekdays strong,
+.daily-progress-weekdays span {
+  display: block;
+}
+
+.daily-progress-weekdays span {
+  color: var(--text-muted);
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-heatmap {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 0.72rem;
+  grid-template-rows: repeat(7, 0.72rem);
+  gap: 0.18rem;
+  overflow-x: auto;
+  padding: 0.15rem 0 0.4rem;
+}
+
+.daily-progress-heatmap-day {
+  border: 1px solid var(--dp-border);
+  border-radius: 2px;
+  background: var(--background-secondary);
+}
+
+.daily-progress-heatmap-day.level-1 { background: rgba(var(--color-green-rgb), 0.18); }
+.daily-progress-heatmap-day.level-2 { background: rgba(var(--color-green-rgb), 0.38); }
+.daily-progress-heatmap-day.level-3 { background: rgba(var(--color-green-rgb), 0.62); }
+.daily-progress-heatmap-day.level-4 { background: var(--color-green); }
+
+.daily-progress-analytics-table-wrap {
+  overflow-x: auto;
+}
+
+.daily-progress-panel .daily-progress-analytics-table {
+  font-size: var(--font-smallest);
+}
+
+.daily-progress-panel .daily-progress-analytics-table th,
+.daily-progress-panel .daily-progress-analytics-table td {
+  min-width: 5rem;
+  padding: 0.4rem;
+}
+
+.daily-progress-panel .daily-progress-analytics-table th:first-child {
+  min-width: 9rem;
+}
+
+.daily-progress-reasons,
+.daily-progress-observations {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+  font-size: var(--font-small);
+}
+
 .daily-progress-manage-list {
   border-top: 1px solid var(--background-modifier-border);
 }

@@ -1,8 +1,11 @@
 import { App, MarkdownRenderChild, Notice, normalizePath, TFile } from "obsidian";
+import { calculateAnalytics, type AnalyticsPeriod } from "./analytics";
+import { renderAnalytics } from "./analytics-view";
 import { addDays, formatIsoDate, mondayOf } from "./dates";
 import { dayAvailability } from "./day-policy";
-import { calculateMetrics, calculateOverall, entryMap, statusFor } from "./metrics";
-import type { DailyAction, DayStatus, PanelConfig, ProgressData } from "./model";
+import { calculateMetrics, calculateOverall, entryKey, entryMap } from "./metrics";
+import { MISSED_REASON_LABELS, type DailyAction, type DailyEntry, type DayStatus, type MissedReason, type PanelConfig, type ProgressData } from "./model";
+import { MissedDetailsModal } from "./modals";
 import { renderPanelHeader } from "./panel-header";
 import { ProgressStore } from "./storage";
 
@@ -28,6 +31,9 @@ export class DailyProgressPanel extends MarkdownRenderChild {
   private rendering = false;
   private renderQueued = false;
   private weekStart: string;
+  private observedCurrentWeek: string;
+  private analyticsPeriod: AnalyticsPeriod = "30";
+  private analyticsExpanded = false;
 
   public constructor(
     containerEl: HTMLElement,
@@ -37,7 +43,8 @@ export class DailyProgressPanel extends MarkdownRenderChild {
     private readonly actions: PanelActions
   ) {
     super(containerEl);
-    this.weekStart = config.weekStart;
+    this.weekStart = mondayOf(new Date());
+    this.observedCurrentWeek = this.weekStart;
   }
 
   public async onload(): Promise<void> {
@@ -45,6 +52,16 @@ export class DailyProgressPanel extends MarkdownRenderChild {
       this.app.vault.on("modify", (file) => {
         if (file instanceof TFile && file.path === normalizePath(this.config.dataPath)) void this.render();
       })
+    );
+    this.registerInterval(
+      window.setInterval(() => {
+        const currentWeek = mondayOf(new Date());
+        if (currentWeek !== this.observedCurrentWeek) {
+          this.observedCurrentWeek = currentWeek;
+          this.weekStart = currentWeek;
+          void this.render();
+        }
+      }, 60_000)
     );
     await this.render();
   }
@@ -81,6 +98,7 @@ export class DailyProgressPanel extends MarkdownRenderChild {
     const weekEnd = weekDays[6] ?? this.weekStart;
     const actions = data.actions.filter((action) => action.start <= weekEnd && action.end >= this.weekStart);
     const entries = entryMap(data.entries);
+    const entryDetails = new Map(data.entries.map((entry) => [entryKey(entry.actionId, entry.date), entry]));
     const overall = calculateOverall(actions, entries, today);
 
     const panel = this.containerEl.createDiv({ cls: "daily-progress-panel" });
@@ -94,6 +112,7 @@ export class DailyProgressPanel extends MarkdownRenderChild {
 
     if (actions.length === 0) {
       panel.createDiv({ cls: "daily-progress-empty", text: "На выбранной неделе нет активных действий." });
+      this.drawAnalytics(panel, data, today);
       return;
     }
 
@@ -119,7 +138,9 @@ export class DailyProgressPanel extends MarkdownRenderChild {
       edit.addEventListener("click", () => this.actions.edit(this.config.dataPath, action));
       actionCell.createEl("small", { text: `${action.start} → ${action.end} · ${metrics.totalDays} дн.` });
 
-      for (const date of weekDays) row.appendChild(this.dayCell(action, date, today, statusFor(entries, action.id, date)));
+      for (const date of weekDays) {
+        row.appendChild(this.dayCell(action, date, today, entryDetails.get(entryKey(action.id, date))));
+      }
 
       const progressCell = row.createEl("td", { cls: "daily-progress-metric" });
       progressCell.createEl("strong", { text: `${metrics.completedDays} из ${metrics.totalDays}` });
@@ -129,9 +150,26 @@ export class DailyProgressPanel extends MarkdownRenderChild {
       });
       row.createEl("td", { cls: "daily-progress-streak", text: String(metrics.streak), attr: { title: "Текущая серия" } });
     }
+
+    this.drawAnalytics(panel, data, today);
   }
 
-  private dayCell(action: DailyAction, date: string, today: string, status: DayStatus | null): HTMLTableCellElement {
+  private drawAnalytics(panel: HTMLElement, data: ProgressData, today: string): void {
+    renderAnalytics(
+      panel,
+      calculateAnalytics(data.actions, data.entries, today, this.analyticsPeriod),
+      this.analyticsPeriod,
+      this.analyticsExpanded,
+      (period) => {
+        this.analyticsPeriod = period;
+        this.analyticsExpanded = true;
+        void this.render();
+      },
+      (expanded) => (this.analyticsExpanded = expanded)
+    );
+  }
+
+  private dayCell(action: DailyAction, date: string, today: string, entry?: DailyEntry): HTMLTableCellElement {
     const cell = this.containerEl.ownerDocument.createElement("td");
     cell.className = "daily-progress-day";
     const availability = dayAvailability(action, date, today);
@@ -148,22 +186,41 @@ export class DailyProgressPanel extends MarkdownRenderChild {
       return cell;
     }
 
+    const status = entry?.status ?? null;
     const meta = status ? STATUS_META[status] : { symbol: "○", label: "Нет отметки" };
+    const missedDetails = entry?.status === "missed"
+      ? [entry.reason ? MISSED_REASON_LABELS[entry.reason] : "", entry.comment ?? ""].filter(Boolean).join(": ")
+      : "";
     const button = cell.createEl("button", {
       cls: `daily-progress-state is-${status ?? "unmarked"}`,
       text: meta.symbol,
       attr: {
-        "aria-label": `${action.name}, ${date}: ${meta.label}. Нажмите, чтобы изменить.`,
-        title: `${meta.label}. Нажмите мышью, Enter или Space.`
+        "aria-label": `${action.name}, ${date}: ${meta.label}${missedDetails ? ` — ${missedDetails}` : ""}. Нажмите, чтобы изменить.`,
+        title: `${meta.label}${missedDetails ? ` — ${missedDetails}` : ""}. Нажмите мышью, Enter или Space.`
       }
     });
-    button.addEventListener("click", () => void this.changeStatus(action.id, date, status ? NEXT_STATUS[status] : "done"));
+    button.addEventListener("click", () => {
+      const next = status ? NEXT_STATUS[status] : "done";
+      if (next === "missed") {
+        new MissedDetailsModal(this.app, action.name, date, (reason, comment) =>
+          this.changeStatus(action.id, date, "missed", reason, comment)
+        ).open();
+      } else {
+        void this.changeStatus(action.id, date, next);
+      }
+    });
     return cell;
   }
 
-  private async changeStatus(actionId: string, date: string, status: DayStatus | null): Promise<void> {
+  private async changeStatus(
+    actionId: string,
+    date: string,
+    status: DayStatus | null,
+    reason?: MissedReason,
+    comment?: string
+  ): Promise<void> {
     try {
-      await this.store.setStatus(this.config.dataPath, actionId, date, status);
+      await this.store.setStatus(this.config.dataPath, actionId, date, status, { reason, comment });
       await this.render();
     } catch (error) {
       new Notice(error instanceof Error ? error.message : "Could not update Daily Progress.");

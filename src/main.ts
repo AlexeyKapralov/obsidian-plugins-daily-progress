@@ -1,7 +1,7 @@
 import { Notice, Plugin, type Editor } from "obsidian";
 import { createActionDraft } from "./actions";
 import { panelCodeBlock, parsePanelConfig } from "./config";
-import { formatIsoDate, mondayOf } from "./dates";
+import { formatIsoDate } from "./dates";
 import { ManageActionsModal } from "./manage-modal";
 import { ActionModal, ActionPickerModal } from "./modals";
 import { DEFAULT_DATA_PATH, type DailyAction } from "./model";
@@ -32,8 +32,7 @@ export default class DailyProgressPlugin extends Plugin {
       id: "insert-panel",
       name: "Insert weekly panel",
       editorCallback: (editor: Editor) => {
-        const weekStart = mondayOf(new Date());
-        editor.replaceSelection(`${panelCodeBlock(weekStart)}\n`);
+        editor.replaceSelection(`${panelCodeBlock()}\n`);
         void this.store.ensure(DEFAULT_DATA_PATH).catch((error: unknown) => this.showError(error));
       }
     });

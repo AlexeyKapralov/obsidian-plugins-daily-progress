@@ -11,12 +11,16 @@ export interface ActionMetrics {
   streak: number;
 }
 
+export function entryKey(actionId: string, date: string): string {
+  return `${actionId}\u0000${date}`;
+}
+
 export function entryMap(entries: DailyEntry[]): Map<string, DayStatus> {
-  return new Map(entries.map((entry) => [`${entry.actionId}\u0000${entry.date}`, entry.status]));
+  return new Map(entries.map((entry) => [entryKey(entry.actionId, entry.date), entry.status]));
 }
 
 export function statusFor(entries: Map<string, DayStatus>, actionId: string, date: string): DayStatus | null {
-  return entries.get(`${actionId}\u0000${date}`) ?? null;
+  return entries.get(entryKey(actionId, date)) ?? null;
 }
 
 export function calculateMetrics(

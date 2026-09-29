@@ -1,4 +1,4 @@
-import { isDayStatus, type DailyAction, type DailyEntry, type ProgressData } from "./model";
+import { isDayStatus, isMissedReason, type DailyAction, type DailyEntry, type ProgressData } from "./model";
 import { isValidRange, parseIsoDate } from "./dates";
 
 const ACTIONS_START = "<!-- daily-progress:actions:start -->";
@@ -16,8 +16,8 @@ ${ACTIONS_START}
 ${ACTIONS_END}
 
 ${LOG_START}
-| Date | Action ID | Status |
-| --- | --- | --- |
+| Date | Action ID | Status | Reason | Comment |
+| --- | --- | --- | --- | --- |
 ${LOG_END}
 `;
 
@@ -77,14 +77,27 @@ export function parseProgressData(source: string): ProgressData {
 
   const entryKeys = new Set<string>();
   const entries = dataRows(section(source, LOG_START, LOG_END)).map((cells): DailyEntry => {
-    const [date, actionId, status] = cells;
+    const [date, actionId, status, rawReason = "", rawComment = ""] = cells;
     if (!date || !actionId || !status || !parseIsoDate(date) || !validIds.has(actionId) || !isDayStatus(status)) {
       throw new Error("Daily Progress has an invalid log row. Check date, action ID, and status.");
     }
+    if ((rawReason || rawComment) && status !== "missed") {
+      throw new Error("Daily Progress reason and comment are only valid for missed rows.");
+    }
+    if (rawReason && !isMissedReason(rawReason)) {
+      throw new Error("Daily Progress has an invalid missed reason.");
+    }
+    const reason = rawReason && isMissedReason(rawReason) ? rawReason : undefined;
     const key = `${actionId}\u0000${date}`;
     if (entryKeys.has(key)) throw new Error(`Daily Progress has more than one mark for ${actionId} on ${date}.`);
     entryKeys.add(key);
-    return { date, actionId, status };
+    return {
+      date,
+      actionId,
+      status,
+      ...(reason ? { reason } : {}),
+      ...(rawComment ? { comment: rawComment } : {})
+    };
   });
   return { actions, entries };
 }
@@ -101,8 +114,16 @@ function logBlock(entries: DailyEntry[]): string {
   const rows = entries
     .slice()
     .sort((left, right) => left.date.localeCompare(right.date) || left.actionId.localeCompare(right.actionId))
-    .map((entry) => `| ${entry.date} | ${escapeCell(entry.actionId)} | ${entry.status} |`);
-  return [LOG_START, "| Date | Action ID | Status |", "| --- | --- | --- |", ...rows, LOG_END].join("\n");
+    .map((entry) =>
+      `| ${entry.date} | ${escapeCell(entry.actionId)} | ${entry.status} | ${escapeCell(entry.reason ?? "")} | ${escapeCell(entry.comment ?? "")} |`
+    );
+  return [
+    LOG_START,
+    "| Date | Action ID | Status | Reason | Comment |",
+    "| --- | --- | --- | --- | --- |",
+    ...rows,
+    LOG_END
+  ].join("\n");
 }
 
 function replaceSection(source: string, start: string, end: string, replacement: string): string | null {

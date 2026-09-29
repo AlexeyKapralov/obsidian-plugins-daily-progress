@@ -1,7 +1,7 @@
 import { normalizePath, TFile, type Vault } from "obsidian";
 import { completeAction, deleteAction, saveAction } from "./actions";
 import { EMPTY_DOCUMENT, parseProgressData, serializeProgressData } from "./markdown";
-import type { DailyAction, DayStatus, ProgressData } from "./model";
+import type { DailyAction, DailyEntry, DayStatus, ProgressData } from "./model";
 
 export class ProgressStore {
   public constructor(private readonly vault: Vault) {}
@@ -32,10 +32,16 @@ export class ProgressStore {
     await this.update(path, (data) => deleteAction(data, actionId));
   }
 
-  public async setStatus(path: string, actionId: string, date: string, status: DayStatus | null): Promise<void> {
+  public async setStatus(
+    path: string,
+    actionId: string,
+    date: string,
+    status: DayStatus | null,
+    details: Pick<DailyEntry, "reason" | "comment"> = {}
+  ): Promise<void> {
     await this.update(path, (data) => {
       const entries = data.entries.filter((entry) => !(entry.actionId === actionId && entry.date === date));
-      if (status) entries.push({ actionId, date, status });
+      if (status) entries.push({ actionId, date, status, ...(status === "missed" ? details : {}) });
       return { ...data, entries };
     });
   }
